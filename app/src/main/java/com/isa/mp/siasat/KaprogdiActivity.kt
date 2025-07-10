@@ -2,80 +2,87 @@ package com.isa.mp.siasat
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.Menu
 import android.view.MenuItem
-import androidx.fragment.app.Fragment
-import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.google.android.material.tabs.TabLayoutMediator
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import androidx.navigation.findNavController
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.navigateUp
+import androidx.navigation.ui.setupActionBarWithNavController
+import androidx.navigation.ui.setupWithNavController
+import com.google.android.material.navigation.NavigationView
 import com.isa.mp.siasat.databinding.ActivityKaprogdiBinding
-import com.isa.mp.siasat.fragment.KelasFragment
-import com.isa.mp.siasat.fragment.MataKuliahFragment
+import android.widget.TextView
 
-class KaprogdiActivity : BaseAuthenticatedActivity() {
+class KaprogdiActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
     private lateinit var binding: ActivityKaprogdiBinding
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var appBarConfiguration: AppBarConfiguration
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityKaprogdiBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setupToolbar()
-        setupViewPager()
-        setupFab()
-    }
-
-    override fun isValidRole(): Boolean = role == "kaprogdi"
-
-    private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.title = "Dashboard Kaprogdi"
-    }
 
-    private fun setupViewPager() {
-        binding.viewPager.adapter = object : FragmentStateAdapter(this) {
-            override fun getItemCount() = 2
+        drawerLayout = binding.drawerLayout
+        val navView: NavigationView = binding.navView
+        val navController = findNavController(R.id.nav_host_fragment)
 
-            override fun createFragment(position: Int): Fragment {
-                return when (position) {
-                    0 -> MataKuliahFragment()
-                    1 -> KelasFragment()
-                    else -> throw IllegalArgumentException("Invalid position")
-                }
-            }
-        }
+        appBarConfiguration = AppBarConfiguration(
+            setOf(
+                R.id.mataKuliahFragment,
+                R.id.kelasFragment,
+                R.id.profileFragment
+            ),
+            drawerLayout
+        )
 
-        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            tab.text = when (position) {
-                0 -> "Mata Kuliah"
-                1 -> "Kelas"
-                else -> ""
-            }
-        }.attach()
-    }
+        setupActionBarWithNavController(navController, appBarConfiguration)
+        navView.setupWithNavController(navController)
+        navView.setNavigationItemSelectedListener(this)
 
-    private fun setupFab() {
-        binding.fabAdd.setOnClickListener {
-            // Fragment will handle the click
-            val currentFragment = supportFragmentManager.findFragmentByTag("f${binding.viewPager.currentItem}")
-            when (currentFragment) {
-                is MataKuliahFragment -> currentFragment.showAddDialog()
-                is KelasFragment -> currentFragment.showEditDialog()
-            }
+        // Set user info in nav header
+        val sharedPref = getSharedPreferences("auth", 0)
+        val nama = sharedPref.getString("nama", "") ?: ""
+        val email = sharedPref.getString("email", "") ?: ""
+        
+        navView.getHeaderView(0)?.apply {
+            findViewById<TextView>(R.id.tv_nama)?.text = nama
+            findViewById<TextView>(R.id.tv_email)?.text = email
         }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.menu_main, menu)
+    override fun onSupportNavigateUp(): Boolean {
+        val navController = findNavController(R.id.nav_host_fragment)
+        return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+    }
+
+    override fun onNavigationItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.mataKuliahFragment,
+            R.id.kelasFragment,
+            R.id.profileFragment -> {
+                findNavController(R.id.nav_host_fragment).navigate(item.itemId)
+            }
+            R.id.nav_logout -> {
+                // Clear shared preferences
+                getSharedPreferences("auth", 0).edit().clear().apply()
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
+            }
+        }
+        drawerLayout.closeDrawer(GravityCompat.START)
         return true
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.menu_profile -> {
-                startActivity(Intent(this, ProfileActivity::class.java))
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
+    override fun onBackPressed() {
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START)
+        } else {
+            super.onBackPressed()
         }
     }
 } 
