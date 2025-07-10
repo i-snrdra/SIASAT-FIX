@@ -20,6 +20,7 @@ import com.isa.mp.siasat.adapter.JadwalDosenAdapter
 import com.isa.mp.siasat.model.Jadwal
 import com.isa.mp.siasat.model.Kelas
 import com.isa.mp.siasat.model.MataKuliah
+import android.app.AlertDialog
 
 class KelasFragment : Fragment() {
     private var _binding: FragmentKelasBinding? = null
@@ -66,7 +67,7 @@ class KelasFragment : Fragment() {
 
     fun showEditDialog(kelas: Kelas? = null) {
         val dialogBinding = DialogKelasBinding.inflate(layoutInflater)
-        val dialog = MaterialAlertDialogBuilder(requireContext())
+        val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogBinding.root)
             .setCancelable(false)
             .create()
@@ -145,7 +146,7 @@ class KelasFragment : Fragment() {
 
     private fun showJadwalDialog(dosenId: String) {
         val dialogBinding = DialogJadwalDosenBinding.inflate(layoutInflater)
-        val dialog = MaterialAlertDialogBuilder(requireContext())
+        val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogBinding.root)
             .create()
 
@@ -386,7 +387,7 @@ class KelasFragment : Fragment() {
         jadwal: Jadwal,
         kapasitas: Int,
         mahasiswa: List<String>,
-        dialog: MaterialAlertDialogBuilder
+        dialog: AlertDialog.Builder
     ) {
         val data = hashMapOf(
             "mataKuliahId" to mataKuliahId,
@@ -448,7 +449,7 @@ class KelasFragment : Fragment() {
 
     private fun showDeleteConfirmation(kelas: Kelas) {
         val mataKuliah = mataKuliahList.find { it.id == kelas.mataKuliahId }
-        MaterialAlertDialogBuilder(requireContext())
+        AlertDialog.Builder(requireContext())
             .setTitle("Hapus Kelas")
             .setMessage("Apakah Anda yakin ingin menghapus kelas ${mataKuliah?.nama}?")
             .setPositiveButton("Hapus") { _, _ ->
@@ -479,6 +480,77 @@ class KelasFragment : Fragment() {
                     "Gagal menghapus: ${e.message}",
                     Toast.LENGTH_SHORT
                 ).show()
+            }
+    }
+
+    private fun loadData() {
+        showLoading(true)
+
+        // Load mata kuliah
+        db.collection("mataKuliah")
+            .get()
+            .addOnSuccessListener { documents ->
+                mataKuliahList.clear()
+                mataKuliahList.addAll(
+                    documents.mapNotNull { doc ->
+                        doc.toObject(MataKuliah::class.java).copy(id = doc.id)
+                    }
+                )
+
+                // Load dosen
+                loadDosen()
+            }
+            .addOnFailureListener { e ->
+                showError("Gagal memuat data mata kuliah: ${e.message}")
+                showLoading(false)
+            }
+    }
+
+    private fun loadDosen() {
+        db.collection("users")
+            .whereEqualTo("role", "dosen")
+            .get()
+            .addOnSuccessListener { documents ->
+                dosenList.clear()
+                dosenList.addAll(
+                    documents.mapNotNull { doc ->
+                        val id = doc.id
+                        val nama = doc.getString("nama") ?: return@mapNotNull null
+                        id to nama
+                    }
+                )
+
+                // Load kelas
+                loadKelas()
+            }
+            .addOnFailureListener { e ->
+                showError("Gagal memuat data dosen: ${e.message}")
+                showLoading(false)
+            }
+    }
+
+    private fun loadKelas() {
+        db.collection("kelas")
+            .orderBy("semester", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    showError("Gagal memuat data: ${e.message}")
+                    return@addSnapshotListener
+                }
+
+                val kelasList = snapshot?.documents?.mapNotNull { doc ->
+                    val kelas = doc.toObject(Kelas::class.java)?.copy(id = doc.id)
+                        ?: return@mapNotNull null
+                    val mataKuliah = mataKuliahList.find { it.id == kelas.mataKuliahId }
+                        ?: return@mapNotNull null
+                    val dosen = dosenList.find { it.first == kelas.dosenId }?.second ?: ""
+
+                    KelasWithDetails(kelas, mataKuliah, dosen)
+                } ?: emptyList()
+
+                adapter.submitList(kelasList)
+                showEmpty(kelasList.isEmpty())
+                showLoading(false)
             }
     }
 

@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import android.app.AlertDialog
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.isa.mp.siasat.adapter.MataKuliahAdapter
@@ -76,7 +76,7 @@ class MataKuliahFragment : Fragment() {
 
     private fun showEditDialog(mataKuliah: MataKuliah? = null) {
         val dialogBinding = DialogMataKuliahBinding.inflate(layoutInflater)
-        val dialog = MaterialAlertDialogBuilder(requireContext())
+        val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogBinding.root)
             .setCancelable(false)
             .create()
@@ -166,9 +166,9 @@ class MataKuliahFragment : Fragment() {
         kode: String,
         nama: String,
         sks: Int,
-        dialog: MaterialAlertDialogBuilder
+        dialog: AlertDialog
     ) {
-        val data = hashMapOf(
+        val data = hashMapOf<String, Any>(
             "kode" to kode,
             "nama" to nama,
             "sks" to sks,
@@ -199,14 +199,14 @@ class MataKuliahFragment : Fragment() {
                     ).show()
                 }
         } else {
-            // Update existing
+            // Update
             db.collection("mataKuliah")
                 .document(id)
                 .update(data)
                 .addOnSuccessListener {
                     Toast.makeText(
                         requireContext(),
-                        "Berhasil mengubah mata kuliah",
+                        "Berhasil mengupdate mata kuliah",
                         Toast.LENGTH_SHORT
                     ).show()
                     dialog.dismiss()
@@ -214,7 +214,7 @@ class MataKuliahFragment : Fragment() {
                 .addOnFailureListener { e ->
                     Toast.makeText(
                         requireContext(),
-                        "Gagal mengubah: ${e.message}",
+                        "Gagal mengupdate: ${e.message}",
                         Toast.LENGTH_SHORT
                     ).show()
                 }
@@ -222,13 +222,13 @@ class MataKuliahFragment : Fragment() {
     }
 
     private fun showDeleteConfirmation(mataKuliah: MataKuliah) {
-        MaterialAlertDialogBuilder(requireContext())
+        AlertDialog.Builder(requireContext())
             .setTitle("Hapus Mata Kuliah")
             .setMessage("Apakah Anda yakin ingin menghapus mata kuliah ${mataKuliah.nama}?")
-            .setPositiveButton("Hapus") { _, _ ->
+            .setPositiveButton("Ya") { _, _ ->
                 deleteMataKuliah(mataKuliah)
             }
-            .setNegativeButton("Batal", null)
+            .setNegativeButton("Tidak", null)
             .show()
     }
 

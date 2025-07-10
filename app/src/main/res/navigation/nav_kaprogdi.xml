@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_kaprogdi"
+    app:startDestination="@id/nav_matakuliah">
+
+    <fragment
+        android:id="@+id/nav_matakuliah"
+        android:name="com.isa.mp.siasat.fragment.MataKuliahFragment"
+        android:label="Mata Kuliah" />
+
+    <fragment
+        android:id="@+id/nav_kelas"
+        android:name="com.isa.mp.siasat.fragment.KelasFragment"
+        android:label="Kelas" />
+
+    <fragment
+        android:id="@+id/nav_profile"
+        android:name="com.isa.mp.siasat.ProfileActivity"
+        android:label="Profile" />
+
+</navigation> 

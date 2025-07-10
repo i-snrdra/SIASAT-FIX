@@ -8,7 +8,7 @@ import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import android.app.AlertDialog
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.isa.mp.siasat.adapter.KelasAdapter
@@ -114,7 +114,7 @@ class NilaiFragment : Fragment() {
 
     private fun showNilaiDialog(kelas: Kelas) {
         val dialogBinding = DialogNilaiBinding.inflate(layoutInflater)
-        val dialog = MaterialAlertDialogBuilder(requireContext())
+        val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogBinding.root)
             .setCancelable(false)
             .create()
@@ -180,7 +180,7 @@ class NilaiFragment : Fragment() {
         kelasId: String,
         mahasiswaId: String,
         nilai: String,
-        dialog: MaterialAlertDialogBuilder
+        dialog: AlertDialog
     ) {
         val data = Nilai(
             kelasId = kelasId,
@@ -201,7 +201,11 @@ class NilaiFragment : Fragment() {
                 dialog.dismiss()
             }
             .addOnFailureListener { e ->
-                showError("Gagal menyimpan nilai: ${e.message}")
+                Toast.makeText(
+                    requireContext(),
+                    "Gagal menyimpan nilai: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
     }
 
