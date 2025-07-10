@@ -10,10 +10,4 @@ data class Kelas(
     val mahasiswa: List<String> = emptyList(), // List of NIM
     val createdAt: Long = 0,
     val updatedAt: Long = 0
-)
-
-data class Jadwal(
-    val hari: String = "", // Senin-Sabtu
-    val jamMulai: Int = 0, // Format 24 jam: 7-17
-    val jamSelesai: Int = 0 // Format 24 jam: 7-17
 ) 

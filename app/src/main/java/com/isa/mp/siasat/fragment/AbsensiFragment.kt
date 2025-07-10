@@ -5,20 +5,18 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import com.isa.mp.siasat.adapter.KelasAdapter
 import com.isa.mp.siasat.adapter.KelasWithDetails
 import com.isa.mp.siasat.databinding.DialogAbsensiBinding
 import com.isa.mp.siasat.databinding.FragmentKelasBinding
 import com.isa.mp.siasat.model.Absensi
 import com.isa.mp.siasat.model.Kelas
-import com.isa.mp.siasat.model.MataKuliah
 import com.isa.mp.siasat.model.Mahasiswa
-import android.app.AlertDialog
+import com.isa.mp.siasat.model.MataKuliah
 
 class AbsensiFragment : Fragment() {
     private var _binding: FragmentKelasBinding? = null
@@ -28,7 +26,6 @@ class AbsensiFragment : Fragment() {
     private lateinit var adapter: KelasAdapter
     private val mataKuliahList = mutableListOf<MataKuliah>()
     private var dosenId: String = ""
-    private var dosenNama: String = ""
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -45,7 +42,6 @@ class AbsensiFragment : Fragment() {
         // Get dosen ID from shared preferences
         val sharedPref = requireActivity().getSharedPreferences("auth", 0)
         dosenId = sharedPref.getString("userId", "") ?: ""
-        dosenNama = sharedPref.getString("nama", "") ?: ""
 
         setupRecyclerView()
         loadData()
@@ -59,7 +55,7 @@ class AbsensiFragment : Fragment() {
     private fun setupRecyclerView() {
         adapter = KelasAdapter(
             onEditClick = { kelas ->
-                checkAbsensiStatus(kelas)
+                showAbsensiDialog(kelas)
             },
             onDeleteClick = { /* Dosen tidak bisa hapus kelas */ }
         )
@@ -77,7 +73,6 @@ class AbsensiFragment : Fragment() {
 
         // Load mata kuliah
         db.collection("mataKuliah")
-            .orderBy("kode", Query.Direction.ASCENDING)
             .get()
             .addOnSuccessListener { documents ->
                 mataKuliahList.clear()
@@ -106,11 +101,12 @@ class AbsensiFragment : Fragment() {
                 }
 
                 val kelasList = snapshot?.documents?.mapNotNull { doc ->
-                    val kelas = doc.toObject(Kelas::class.java)?.copy(id = doc.id) ?: return@mapNotNull null
+                    val kelas = doc.toObject(Kelas::class.java)?.copy(id = doc.id)
+                        ?: return@mapNotNull null
                     val mataKuliah = mataKuliahList.find { it.id == kelas.mataKuliahId }
                         ?: return@mapNotNull null
 
-                    KelasWithDetails(kelas, mataKuliah, dosenNama)
+                    KelasWithDetails(kelas, mataKuliah, "")
                 } ?: emptyList()
 
                 adapter.submitList(kelasList)
@@ -119,153 +115,52 @@ class AbsensiFragment : Fragment() {
             }
     }
 
-    private fun checkAbsensiStatus(kelas: Kelas) {
-        db.collection("absensi")
-            .whereEqualTo("kelasId", kelas.id)
-            .whereEqualTo("status", Absensi.STATUS_TERBUKA)
-            .get()
-            .addOnSuccessListener { documents ->
-                if (documents.isEmpty) {
-                    // Tidak ada absensi yang terbuka, tampilkan dialog buka absensi
-                    showAbsensiDialog(kelas)
-                } else {
-                    // Ada absensi yang terbuka, tampilkan dialog tutup absensi
-                    val absensi = documents.documents[0].toObject(Absensi::class.java)!!
-                        .copy(id = documents.documents[0].id)
-                    showTutupAbsensiDialog(absensi)
-                }
-            }
-            .addOnFailureListener { e ->
-                showError("Gagal mengecek status absensi: ${e.message}")
-            }
-    }
-
     private fun showAbsensiDialog(kelas: Kelas) {
         val dialogBinding = DialogAbsensiBinding.inflate(layoutInflater)
-        val dialog = MaterialAlertDialogBuilder(requireContext())
+        val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogBinding.root)
             .setTitle("Input Absensi")
             .create()
 
-        dialogBinding.apply {
-            // Setup dialog content
-            tvNama.text = dosenNama // Assuming dosenNama is available here
-            tvNim.text = dosenId // Assuming dosenId is available here
-
-            // Load existing absensi
-            loadAbsensi(kelas.id, dosenId) { absensi ->
-                etHadir.setText(absensi?.hadir?.toString() ?: "0")
-                etIzin.setText(absensi?.izin?.toString() ?: "0")
-                etAlfa.setText(absensi?.alfa?.toString() ?: "0")
-            }
-
-            btnSave.setOnClickListener {
-                val hadir = etHadir.text.toString().toIntOrNull()
-                val izin = etIzin.text.toString().toIntOrNull()
-                val alfa = etAlfa.text.toString().toIntOrNull()
-
-                if (hadir == null || izin == null || alfa == null) {
-                    showDialogError("Input tidak valid", dialogBinding)
-                    return@setOnClickListener
+        // Load mahasiswa yang mengambil kelas ini
+        db.collection("krs")
+            .whereEqualTo("kelasId", kelas.id)
+            .whereEqualTo("status", "approved")
+            .get()
+            .addOnSuccessListener { krsDocuments ->
+                val mahasiswaIds = krsDocuments.documents.mapNotNull { doc ->
+                    doc.getString("mahasiswaId")
                 }
 
-                saveAbsensi(kelas.id, dosenId, hadir, izin, alfa, dialog)
-            }
+                if (mahasiswaIds.isEmpty()) {
+                    showError("Belum ada mahasiswa yang mengambil kelas ini")
+                    dialog.dismiss()
+                    return@addOnSuccessListener
+                }
 
-            btnCancel.setOnClickListener {
-                dialog.dismiss()
-            }
-        }
+                // Load data mahasiswa
+                db.collection("users")
+                    .whereIn("id", mahasiswaIds)
+                    .get()
+                    .addOnSuccessListener { mahasiswaDocuments ->
+                        val mahasiswaList = mahasiswaDocuments.mapNotNull { doc ->
+                            doc.toObject(Mahasiswa::class.java)
+                        }
 
-        dialog.show()
-    }
+                        // Setup RecyclerView untuk list mahasiswa
+                        // ... implementasi adapter untuk list mahasiswa ...
 
-    private fun showTutupAbsensiDialog(absensi: Absensi) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Tutup Absensi")
-            .setMessage("Apakah Anda yakin ingin menutup absensi untuk pertemuan ke-${absensi.pertemuan}?")
-            .setPositiveButton("Tutup") { _, _ ->
-                tutupAbsensi(absensi)
-            }
-            .setNegativeButton("Batal", null)
-            .show()
-    }
-
-    private fun validateInput(
-        pertemuan: String,
-        topik: String,
-        dialogBinding: DialogAbsensiBinding
-    ): Boolean {
-        if (pertemuan.isEmpty()) {
-            showDialogError("Masukkan nomor pertemuan", dialogBinding)
-            return false
-        }
-
-        if (topik.isEmpty()) {
-            showDialogError("Masukkan topik pertemuan", dialogBinding)
-            return false
-        }
-
-        return true
-    }
-
-    private fun bukaAbsensi(
-        kelasId: String,
-        pertemuan: Int,
-        topik: String,
-        dialog: MaterialAlertDialogBuilder
-    ) {
-        val now = System.currentTimeMillis()
-        val data = Absensi(
-            kelasId = kelasId,
-            pertemuan = pertemuan,
-            topik = topik,
-            tanggal = now,
-            status = Absensi.STATUS_TERBUKA,
-            dibukaPada = now
-        )
-
-        db.collection("absensi")
-            .add(data)
-            .addOnSuccessListener {
-                Toast.makeText(
-                    requireContext(),
-                    "Berhasil membuka absensi",
-                    Toast.LENGTH_SHORT
-                ).show()
-                dialog.dismiss()
+                        dialog.show()
+                    }
+                    .addOnFailureListener { e ->
+                        showError("Gagal memuat data mahasiswa: ${e.message}")
+                        dialog.dismiss()
+                    }
             }
             .addOnFailureListener { e ->
-                showError("Gagal membuka absensi: ${e.message}")
+                showError("Gagal memuat data KRS: ${e.message}")
+                dialog.dismiss()
             }
-    }
-
-    private fun tutupAbsensi(absensi: Absensi) {
-        db.collection("absensi")
-            .document(absensi.id)
-            .update(
-                mapOf(
-                    "status" to Absensi.STATUS_TERTUTUP,
-                    "ditutupPada" to System.currentTimeMillis()
-                )
-            )
-            .addOnSuccessListener {
-                Toast.makeText(
-                    requireContext(),
-                    "Berhasil menutup absensi",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-            .addOnFailureListener { e ->
-                showError("Gagal menutup absensi: ${e.message}")
-            }
-    }
-
-    private fun showDialogError(message: String, dialogBinding: DialogAbsensiBinding) {
-        dialogBinding.tvError.apply {
-            text = message
-            visibility = View.VISIBLE
-        }
     }
 
     private fun showLoading(isLoading: Boolean) {
@@ -279,79 +174,5 @@ class AbsensiFragment : Fragment() {
     private fun showError(message: String) {
         Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
     }
-
-    private fun loadAbsensi(kelasId: String, mahasiswaId: String, onAbsensiLoaded: (Absensi?) -> Unit) {
-        db.collection("absensi")
-            .whereEqualTo("kelasId", kelasId)
-            .whereEqualTo("mahasiswaId", mahasiswaId)
-            .orderBy("pertemuan", Query.Direction.DESCENDING)
-            .limit(1)
-            .get()
-            .addOnSuccessListener { documents ->
-                val absensi = documents.documents.firstOrNull()?.toObject(Absensi::class.java)
-                onAbsensiLoaded(absensi)
-            }
-            .addOnFailureListener { e ->
-                showError("Gagal memuat absensi: ${e.message}")
-            }
-    }
-
-    private fun saveAbsensi(
-        kelasId: String,
-        mahasiswaId: String,
-        hadir: Int,
-        izin: Int,
-        alfa: Int,
-        dialog: AlertDialog
-    ) {
-        val absensi = hashMapOf(
-            "kelasId" to kelasId,
-            "mahasiswaId" to mahasiswaId,
-            "hadir" to hadir,
-            "izin" to izin,
-            "alfa" to alfa,
-            "updatedAt" to System.currentTimeMillis()
-        )
-
-        db.collection("absensi")
-            .whereEqualTo("kelasId", kelasId)
-            .whereEqualTo("mahasiswaId", mahasiswaId)
-            .get()
-            .addOnSuccessListener { documents ->
-                if (documents.isEmpty) {
-                    // Create new
-                    db.collection("absensi")
-                        .add(absensi)
-                        .addOnSuccessListener {
-                            Toast.makeText(
-                                requireContext(),
-                                "Berhasil menyimpan absensi",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            dialog.dismiss()
-                        }
-                        .addOnFailureListener { e ->
-                            showError("Gagal menyimpan absensi: ${e.message}")
-                        }
-                } else {
-                    // Update existing
-                    documents.first().reference
-                        .update(absensi as Map<String, Any>)
-                        .addOnSuccessListener {
-                            Toast.makeText(
-                                requireContext(),
-                                "Berhasil memperbarui absensi",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            dialog.dismiss()
-                        }
-                        .addOnFailureListener { e ->
-                            showError("Gagal memperbarui absensi: ${e.message}")
-                        }
-                }
-            }
-            .addOnFailureListener { e ->
-                showError("Gagal memeriksa absensi: ${e.message}")
-            }
-    }
+} 
 } 

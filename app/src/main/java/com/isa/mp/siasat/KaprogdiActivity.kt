@@ -33,9 +33,9 @@ class KaprogdiActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
 
         appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.mataKuliahFragment,
-                R.id.kelasFragment,
-                R.id.profileFragment
+                R.id.nav_matakuliah,
+                R.id.nav_kelas,
+                R.id.nav_profile
             ),
             drawerLayout
         )
@@ -62,9 +62,9 @@ class KaprogdiActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.mataKuliahFragment,
-            R.id.kelasFragment,
-            R.id.profileFragment -> {
+            R.id.nav_matakuliah,
+            R.id.nav_kelas,
+            R.id.nav_profile -> {
                 findNavController(R.id.nav_host_fragment).navigate(item.itemId)
             }
             R.id.nav_logout -> {
