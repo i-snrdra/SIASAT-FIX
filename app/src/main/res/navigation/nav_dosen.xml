@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_dosen"
+    app:startDestination="@id/mengajarFragment">
+
+    <fragment
+        android:id="@+id/mengajarFragment"
+        android:name="com.isa.mp.siasat.fragment.MengajarFragment"
+        android:label="Kelas" />
+
+    <fragment
+        android:id="@+id/absensiFragment"
+        android:name="com.isa.mp.siasat.fragment.AbsensiFragment"
+        android:label="Absensi" />
+
+    <fragment
+        android:id="@+id/nilaiFragment"
+        android:name="com.isa.mp.siasat.fragment.NilaiFragment"
+        android:label="Nilai" />
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.isa.mp.siasat.fragment.ProfileFragment"
+        android:label="Profil" />
+
+</navigation> 

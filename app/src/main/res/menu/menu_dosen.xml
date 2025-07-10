@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/mengajarFragment"
+            android:icon="@drawable/ic_class"
+            android:title="Kelas" />
+        <item
+            android:id="@+id/absensiFragment"
+            android:icon="@drawable/ic_attendance"
+            android:title="Absensi" />
+        <item
+            android:id="@+id/nilaiFragment"
+            android:icon="@drawable/ic_grade"
+            android:title="Nilai" />
+        <item
+            android:id="@+id/profileFragment"
+            android:icon="@drawable/ic_person"
+            android:title="Profil" />
+    </group>
+</menu> 
