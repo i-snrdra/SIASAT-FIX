@@ -3,6 +3,7 @@ package com.isa.mp.siasat
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.firestore.FirebaseFirestore
 import com.isa.mp.siasat.databinding.ActivityProfileBinding
@@ -71,7 +72,7 @@ class ProfileActivity : BaseAuthenticatedActivity() {
 
     private fun showChangePasswordDialog() {
         val dialogBinding = DialogChangePasswordBinding.inflate(layoutInflater)
-        val dialog = MaterialAlertDialogBuilder(this)
+        val dialog = AlertDialog.Builder(this)
             .setView(dialogBinding.root)
             .setCancelable(false)
             .create()
@@ -136,7 +137,7 @@ class ProfileActivity : BaseAuthenticatedActivity() {
         }
     }
 
-    private fun changePassword(oldPassword: String, newPassword: String, dialog: MaterialAlertDialogBuilder) {
+    private fun changePassword(oldPassword: String, newPassword: String, dialog: AlertDialog) {
         db.collection("users").document(userId)
             .get()
             .addOnSuccessListener { document ->

@@ -64,192 +64,7 @@ class KelasFragment : Fragment() {
         binding.rvKelas.adapter = adapter
     }
 
-    private fun loadData() {
-        showLoading(true)
-
-        // Load mata kuliah
-        db.collection("mataKuliah")
-            .orderBy("kode", Query.Direction.ASCENDING)
-            .get()
-            .addOnSuccessListener { documents ->
-                mataKuliahList.clear()
-                mataKuliahList.addAll(
-                    documents.mapNotNull { doc ->
-                        doc.toObject(MataKuliah::class.java).copy(id = doc.id)
-                    }
-                )
-
-                // Load dosen
-                db.collection("users")
-                    .whereEqualTo("role", "dosen")
-                    .get()
-                    .addOnSuccessListener { dosenDocs ->
-                        dosenList.clear()
-                        dosenList.addAll(
-                            dosenDocs.map { doc ->
-                                doc.id to (doc.getString("nama") ?: "")
-                            }
-                        )
-
-                        // Load kelas
-                        loadKelas()
-                    }
-                    .addOnFailureListener { e ->
-                        showError("Gagal memuat data dosen: ${e.message}")
-                        showLoading(false)
-                    }
-            }
-            .addOnFailureListener { e ->
-                showError("Gagal memuat data mata kuliah: ${e.message}")
-                showLoading(false)
-            }
-    }
-
-    private fun loadKelas() {
-        db.collection("kelas")
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    showError("Gagal memuat data: ${e.message}")
-                    return@addSnapshotListener
-                }
-
-                val kelasList = snapshot?.documents?.mapNotNull { doc ->
-                    val kelas = doc.toObject(Kelas::class.java)?.copy(id = doc.id) ?: return@mapNotNull null
-                    val mataKuliah = mataKuliahList.find { it.id == kelas.mataKuliahId }
-                        ?: return@mapNotNull null
-                    val dosenNama = dosenList.find { it.first == kelas.dosenId }?.second
-                        ?: return@mapNotNull null
-
-                    KelasWithDetails(kelas, mataKuliah, dosenNama)
-                } ?: emptyList()
-
-                adapter.submitList(kelasList)
-                showEmpty(kelasList.isEmpty())
-                showLoading(false)
-            }
-    }
-
-    private fun validateJadwalBentrok(
-        kelasId: String?,
-        dosenId: String,
-        hari: String,
-        jamMulai: Int,
-        jamSelesai: Int,
-        dialogBinding: DialogKelasBinding,
-        onSuccess: () -> Unit
-    ) {
-        db.collection("kelas")
-            .whereEqualTo("dosenId", dosenId)
-            .get()
-            .addOnSuccessListener { documents ->
-                var bentrok = false
-                for (doc in documents) {
-                    // Skip jika sedang edit dan ini adalah kelas yang sedang diedit
-                    if (kelasId != null && doc.id == kelasId) continue
-
-                    val kelas = doc.toObject(Kelas::class.java)
-                    if (kelas.jadwal.hari == hari) {
-                        // Cek apakah jadwal bentrok
-                        val existingStart = kelas.jadwal.jamMulai
-                        val existingEnd = kelas.jadwal.jamSelesai
-                        
-                        if (
-                            // Kasus 1: Jam mulai baru di antara jadwal yang ada
-                            (jamMulai >= existingStart && jamMulai < existingEnd) ||
-                            // Kasus 2: Jam selesai baru di antara jadwal yang ada
-                            (jamSelesai > existingStart && jamSelesai <= existingEnd) ||
-                            // Kasus 3: Jadwal baru mencakup jadwal yang ada
-                            (jamMulai <= existingStart && jamSelesai >= existingEnd)
-                        ) {
-                            bentrok = true
-                            val mataKuliah = mataKuliahList.find { it.id == kelas.mataKuliahId }
-                            showDialogError(
-                                "Jadwal bentrok dengan kelas ${mataKuliah?.nama} " +
-                                "(${kelas.jadwal.hari}, " +
-                                String.format("%02d:00-%02d:00", existingStart, existingEnd)+")",
-                                dialogBinding
-                            )
-                            break
-                        }
-                    }
-                }
-                
-                if (!bentrok) {
-                    onSuccess()
-                }
-            }
-            .addOnFailureListener { e ->
-                showDialogError("Gagal memeriksa jadwal: ${e.message}", dialogBinding)
-            }
-    }
-
-    private fun validateInput(
-        mataKuliahId: String?,
-        dosenId: String?,
-        semester: String,
-        hari: String,
-        jamMulai: Int?,
-        jamSelesai: Int?,
-        kapasitas: Int?,
-        dialogBinding: DialogKelasBinding,
-        kelasId: String? = null,
-        onSuccess: () -> Unit
-    ) {
-        if (mataKuliahId == null) {
-            showDialogError("Pilih mata kuliah", dialogBinding)
-            return
-        }
-
-        if (dosenId == null) {
-            showDialogError("Pilih dosen", dialogBinding)
-            return
-        }
-
-        if (semester.isEmpty()) {
-            showDialogError("Pilih semester", dialogBinding)
-            return
-        }
-
-        if (hari.isEmpty()) {
-            showDialogError("Pilih hari", dialogBinding)
-            return
-        }
-
-        if (jamMulai == null) {
-            showDialogError("Pilih jam mulai", dialogBinding)
-            return
-        }
-
-        if (jamSelesai == null) {
-            showDialogError("Pilih jam selesai", dialogBinding)
-            return
-        }
-
-        if (jamMulai >= jamSelesai) {
-            showDialogError("Jam selesai harus lebih besar dari jam mulai", dialogBinding)
-            return
-        }
-
-        if (kapasitas == null || kapasitas < 1) {
-            showDialogError("Kapasitas minimal 1", dialogBinding)
-            return
-        }
-
-        // Validasi bentrok jadwal
-        validateJadwalBentrok(
-            kelasId,
-            dosenId,
-            hari,
-            jamMulai,
-            jamSelesai,
-            dialogBinding
-        ) {
-            onSuccess()
-        }
-    }
-
-    private fun showEditDialog(kelas: Kelas? = null) {
+    fun showEditDialog(kelas: Kelas? = null) {
         val dialogBinding = DialogKelasBinding.inflate(layoutInflater)
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setView(dialogBinding.root)
@@ -434,6 +249,125 @@ class KelasFragment : Fragment() {
             if (jadwal != null) {
                 setText(String.format("%02d:00", jadwal.jamSelesai), false)
             }
+        }
+    }
+
+    private fun validateJadwalBentrok(
+        kelasId: String?,
+        dosenId: String,
+        hari: String,
+        jamMulai: Int,
+        jamSelesai: Int,
+        dialogBinding: DialogKelasBinding,
+        onSuccess: () -> Unit
+    ) {
+        db.collection("kelas")
+            .whereEqualTo("dosenId", dosenId)
+            .get()
+            .addOnSuccessListener { documents ->
+                var bentrok = false
+                for (doc in documents) {
+                    // Skip jika sedang edit dan ini adalah kelas yang sedang diedit
+                    if (kelasId != null && doc.id == kelasId) continue
+
+                    val kelas = doc.toObject(Kelas::class.java)
+                    if (kelas.jadwal.hari == hari) {
+                        // Cek apakah jadwal bentrok
+                        val existingStart = kelas.jadwal.jamMulai
+                        val existingEnd = kelas.jadwal.jamSelesai
+                        
+                        if (
+                            // Kasus 1: Jam mulai baru di antara jadwal yang ada
+                            (jamMulai >= existingStart && jamMulai < existingEnd) ||
+                            // Kasus 2: Jam selesai baru di antara jadwal yang ada
+                            (jamSelesai > existingStart && jamSelesai <= existingEnd) ||
+                            // Kasus 3: Jadwal baru mencakup jadwal yang ada
+                            (jamMulai <= existingStart && jamSelesai >= existingEnd)
+                        ) {
+                            bentrok = true
+                            val mataKuliah = mataKuliahList.find { it.id == kelas.mataKuliahId }
+                            showDialogError(
+                                "Jadwal bentrok dengan kelas ${mataKuliah?.nama} " +
+                                "(${kelas.jadwal.hari}, " +
+                                String.format("%02d:00-%02d:00", existingStart, existingEnd)+")",
+                                dialogBinding
+                            )
+                            break
+                        }
+                    }
+                }
+                
+                if (!bentrok) {
+                    onSuccess()
+                }
+            }
+            .addOnFailureListener { e ->
+                showDialogError("Gagal memeriksa jadwal: ${e.message}", dialogBinding)
+            }
+    }
+
+    private fun validateInput(
+        mataKuliahId: String?,
+        dosenId: String?,
+        semester: String,
+        hari: String,
+        jamMulai: Int?,
+        jamSelesai: Int?,
+        kapasitas: Int?,
+        dialogBinding: DialogKelasBinding,
+        kelasId: String? = null,
+        onSuccess: () -> Unit
+    ) {
+        if (mataKuliahId == null) {
+            showDialogError("Pilih mata kuliah", dialogBinding)
+            return
+        }
+
+        if (dosenId == null) {
+            showDialogError("Pilih dosen", dialogBinding)
+            return
+        }
+
+        if (semester.isEmpty()) {
+            showDialogError("Pilih semester", dialogBinding)
+            return
+        }
+
+        if (hari.isEmpty()) {
+            showDialogError("Pilih hari", dialogBinding)
+            return
+        }
+
+        if (jamMulai == null) {
+            showDialogError("Pilih jam mulai", dialogBinding)
+            return
+        }
+
+        if (jamSelesai == null) {
+            showDialogError("Pilih jam selesai", dialogBinding)
+            return
+        }
+
+        if (jamMulai >= jamSelesai) {
+            showDialogError("Jam selesai harus lebih besar dari jam mulai", dialogBinding)
+            return
+        }
+
+        if (kapasitas == null || kapasitas < 1) {
+            showDialogError("Kapasitas minimal 1", dialogBinding)
+            return
+        }
+
+        // Validasi bentrok jadwal
+        validateJadwalBentrok(
+            kelasId,
+            dosenId,
+            hari,
+            jamMulai,
+            jamSelesai,
+            dialogBinding
+        ) {
+            onSuccess()
         }
     }
 
