@@ -69,20 +69,4 @@
         <item name="android:textAllCaps">false</item>
         <item name="fontFamily">@font/poppins_medium</item>
     </style>
-
-    <!-- Custom Styles -->
-    <style name="Widget.SIASAT.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
-        <item name="boxStrokeColor">@color/primary</item>
-        <item name="boxStrokeWidth">1dp</item>
-        <item name="android:textColorHint">@color/text_hint</item>
-    </style>
-
-    <style name="Widget.SIASAT.Button" parent="Widget.MaterialComponents.Button">
-        <item name="android:textAppearance">@style/TextAppearance.SIASAT.Button</item>
-        <item name="android:paddingTop">12dp</item>
-        <item name="android:paddingBottom">12dp</item>
-        <item name="android:paddingStart">24dp</item>
-        <item name="android:paddingEnd">24dp</item>
-        <item name="cornerRadius">8dp</item>
-    </style>
 </resources>

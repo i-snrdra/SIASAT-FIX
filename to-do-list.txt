@@ -1,0 +1,161 @@
+# SIASAT (Sistem Informasi Akademik Satya Wacana)
+Mini Project - Tugas Mata Kuliah Mobile Programming
+
+## Progress Saat Ini
+✓ Setup project dan database
+✓ Inisialisasi data dummy
+✓ Implementasi login dan autentikasi dasar
+✓ Implementasi halaman profile dan ganti password
+✓ Implementasi CRUD mata kuliah
+✓ Implementasi assign dosen dan manajemen kapasitas kelas
+✓ Implementasi input nilai mahasiswa
+✓ Implementasi sistem absensi
+✓ Implementasi KRS dan jadwal kuliah
+✓ Implementasi UI/UX untuk semua fitur
+
+Selanjutnya:
+- Testing dan debugging aplikasi
+
+## Daftar Role
+- Kaprogdi (Program Director)
+- Dosen (Lecturer)
+- Mahasiswa (Student)
+
+## Aturan Sistem
+- [x] Implementasi format kode Dosen/Kaprogdi (diawali 67 + 3 angka random)
+- [x] Implementasi format NIM (2 digit kode progdi + tahun masuk + 3 angka random)
+- [x] Password default sama dengan NIM/kode dosen
+- [x] Sistem penilaian menggunakan aksara (A, B, C, D, E)
+- [x] Jadwal kuliah menggunakan range hari (Senin-Sabtu) dan jam (contoh: 11-13)
+- [x] Kapasitas default kelas adalah 30 mahasiswa
+
+## Fitur Authentication & Profile [COMPLETED]
+- [x] Implementasi login dengan NIM/Kode Dosen
+  - [x] Layout halaman login
+  - [x] Validasi format NIM/Kode Dosen
+  - [x] Integrasi dengan Firestore
+  - [x] Handling error login
+  - [x] Clear session saat aplikasi ditutup
+- [x] Halaman profile untuk melihat data user
+  - [x] Layout halaman profile
+  - [x] Tampilkan data sesuai role
+  - [x] Implementasi logout
+- [x] Fitur ganti password
+  - [x] Layout form ganti password
+  - [x] Validasi password
+  - [x] Update password di Firestore
+
+## Fitur Kaprogdi [COMPLETED]
+- [x] CRUD Mata Kuliah
+  - [x] Input data mata kuliah
+    - [x] Validasi format kode (2 huruf + 3 angka)
+    - [x] Validasi nama dan SKS
+    - [x] Simpan ke Firestore
+  - [x] Edit data mata kuliah
+    - [x] Pre-fill form dengan data existing
+    - [x] Update di Firestore
+  - [x] Hapus mata kuliah
+    - [x] Konfirmasi sebelum hapus
+    - [x] Delete dari Firestore
+  - [x] List mata kuliah
+    - [x] Tampilkan dalam RecyclerView
+    - [x] Sort by kode
+    - [x] Menu edit/hapus per item
+- [x] Assign dosen ke mata kuliah
+  - [x] Pilih dosen dari dropdown
+  - [x] Validasi bentrok jadwal
+  - [x] Tampilkan jadwal dosen dalam tabel
+  - [x] Update array mengajar di document dosen
+- [x] Manajemen kapasitas kelas
+  - [x] Set kapasitas saat membuat kelas baru (default: 30)
+  - [x] Edit kapasitas kelas yang sudah ada
+
+## Fitur Dosen [COMPLETED]
+- [x] Manajemen mata kuliah yang diajar
+  - [x] List kelas yang diajar
+  - [x] Detail informasi kelas
+- [x] Sistem absensi
+  - [x] Auto-increment nomor pertemuan
+  - [x] Input topik pertemuan
+  - [x] Buka absensi per topik
+  - [x] Tutup absensi per topik
+  - [x] Timestamp dibuka/ditutup
+  - [x] List mahasiswa yang hadir
+- [x] Input nilai mahasiswa (A, B, C, D, E)
+  - [x] Pilih mahasiswa dari kelas
+  - [x] Input nilai A-E
+  - [x] Validasi input
+  - [x] Simpan ke Firestore dengan timestamp
+
+## Fitur Mahasiswa [COMPLETED]
+- [x] Registrasi mata kuliah
+  - [x] Tampilkan daftar kelas tersedia
+  - [x] Cek kapasitas kelas sebelum registrasi
+  - [x] Tampilkan status kapasitas penuh/tersedia
+  - [x] Validasi bentrok jadwal
+  - [x] Simpan ke collection KRS
+- [x] Melihat jadwal kuliah
+  - [x] List kelas yang diambil
+  - [x] Sort by jadwal
+  - [x] Detail informasi kelas
+- [x] Melihat nilai
+  - [x] List kelas yang diambil
+  - [x] Tampilkan nilai per kelas
+  - [x] Status jika belum ada nilai
+
+## Setup Teknis
+- [x] Inisialisasi proyek Android
+- [x] Setup Firebase Firestore
+- [x] Konfigurasi autentikasi Firebase
+- [x] Desain database schema
+
+## Database Collections (Firestore)
+- [x] Collection Users (Kaprogdi, Dosen, Mahasiswa)
+  - [x] Fields: kode/nim, nama, role, password, createdAt, lastLogin
+  - [x] Tambahan untuk dosen: mengajar (array of mataKuliah IDs)
+  - [x] Tambahan untuk mahasiswa: mataKuliahDiambil (array of kelas IDs)
+- [x] Collection Mata Kuliah
+  - [x] Fields: kode, nama, sks, createdBy, createdAt, updatedAt
+- [x] Collection Kelas (Instance Mata Kuliah)
+  - [x] Fields: mataKuliahId, dosenId, semester, jadwal (hari, jamMulai, jamSelesai)
+  - [x] Fields tambahan: mahasiswa (array of NIMs), kapasitas, createdAt, updatedAt
+- [x] Collection Absensi
+  - [x] Fields: kelasId, pertemuan, topik, tanggal, status, dibukaPada, ditutupPada
+  - [x] Fields tambahan: mahasiswaHadir (array of NIMs)
+- [x] Collection Nilai
+  - [x] Fields: kelasId, mahasiswaId, nilai, updatedBy, updatedAt
+
+## UI/UX [COMPLETED]
+- [x] Implementasi tema light dan dark mode
+  - [x] Palette warna elegan yang cocok untuk kedua mode
+  - [x] Transisi yang halus antara light dan dark mode
+- [x] Desain minimalis tanpa simbol/ikon yang tidak perlu
+- [x] Typography yang clean dan mudah dibaca
+- [x] Konsistensi desain di seluruh aplikasi
+- [x] Desain halaman login
+- [x] Desain dashboard sesuai role
+- [x] Desain form input/edit
+- [x] Desain halaman profile
+- [x] Implementasi UI untuk setiap fitur
+- [x] Spacing dan padding yang konsisten
+- [x] Feedback visual yang subtle
+- [x] Indikator kapasitas kelas yang jelas
+
+## Coding Standards
+- [x] Implementasi clean code
+  - [x] Penamaan variabel dan fungsi yang deskriptif
+  - [x] Struktur kode yang modular
+  - [x] Minimalisasi penggunaan comment (hanya untuk logic kompleks)
+  - [x] Konsistensi format kode
+  - [x] Implementasi SOLID principles
+  - [x] Penggunaan Kotlin best practices
+- [x] Implementasi design patterns yang sesuai
+- [x] Error handling yang elegan
+- [x] Optimasi performa
+
+## Testing
+- [x] Test autentikasi
+- [ ] Test CRUD operations
+- [ ] Test business rules
+- [ ] Test user flows per role
+- [ ] Test kapasitas kelas 
